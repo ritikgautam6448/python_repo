@@ -1,4 +1,5 @@
 # that spans across
+# this is a function that takes a string and returns a new string
 def front_back(s):
     if len(s) <= 1:
         return s
