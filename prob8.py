@@ -9,3 +9,4 @@ def monkey_trouble(a_smile, b_smile):
 
 print(monkey_trouble(True, True))   # Expected: True
 print(monkey_trouble(True, False))
+print(monkey_trouble(False, False))  # Expected: True
