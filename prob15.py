@@ -1,5 +1,6 @@
 # the code below is part of a Python module named prob15.py
-# the code below is part of a Python module named prob15.py 15
+# the code below is part of a Python module named prob15.py 14
+# This module defines a function that combines two strings
 # This module defines a function that combines two strings
 def combo_string(a, b):
     if len(a) < len(b):
