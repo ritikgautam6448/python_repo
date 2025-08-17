@@ -1,5 +1,5 @@
 # the code below is part of a Python module named prob15.py
-# the code below is part of a Python module named prob15.py
+# the code below is part of a Python module named prob15.py 12
 
 def combo_string(a, b):
     if len(a) < len(b):
