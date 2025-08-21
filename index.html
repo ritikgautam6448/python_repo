@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="weather-container">
+    <h1>Weather App</h1>
+    <form id="weatherForm">
+      <input type="text" id="cityInput" placeholder="Enter city name" required />
+      <button type="submit">Get Weather</button>
+    </form>
+    <div class="weather-info" id="weatherInfo"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #74ebd5, #acb6e5);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.weather-container {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+input[type="text"] {
+  padding: 10px;
+  width: 70%;
+  margin-right: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  padding: 10px 15px;
+  border: none;
+  background-color: #3498db;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+.weather-info {
+  margin-top: 20px;
+  text-align: left;
+}
+const form = document.getElementById('weatherForm');
+const weatherInfo = document.getElementById('weatherInfo');
+
+form.addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const city = document.getElementById('cityInput').value.trim();
+  const apiKey = '299c721cb10a4c098d1183106252108';
+  const url = `http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${city}&aqi=yes`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('City not found.');
+
+    const data = await response.json();
+
+    weatherInfo.innerHTML = `
+      <h2>Weather in ${data.location.name}, ${data.location.country}</h2>
+      <p><strong>Temperature:</strong> ${data.current.temp_c}°C</p>
+      <p><strong>Condition:</strong> ${data.current.condition.text}</p>
+      <img src="https:${data.current.condition.icon}" alt="weather icon" />
+      <p><strong>Humidity:</strong> ${data.current.humidity}%</p>
+      <p><strong>Wind:</strong> ${data.current.wind_kph} kph</p>
+      <p><strong>Air Quality:</strong> PM2.5 - ${data.current.air_quality.pm2_5.toFixed(2)}</p>
+    `;
+  } catch (error) {
+    weatherInfo.innerHTML = `<p style="color: red;">${error.message}</p>`;
+  }
+});
