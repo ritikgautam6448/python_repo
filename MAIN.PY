@@ -1,39 +1,11 @@
 from flask import Flask, request, jsonify
+import requests
+
 app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
     return 'Hello, World'
-
-
-@app.route('/GREET/<name>')
-def greet(name):
-    print("Greet request for %s\n", name)
-    result = {
-         "name": name,
-        "greeting": f"Hello, {name}",
-        "alternative_greeting": f"Hi, {name}",
-        "contact": "abcxyz",
-        "email": "ritik@6448gmail.com",
-        "phone number": "1234567890",
-        "address": "abc street, bangalore -560037",
-        "type": "1",
-        "street": "xyz street",
-        "city": "bangalore",
-        "country": "india",
-        "landmark": "near xyz mall",
-        "state": "Karnataka",
-        "pincode": "560037",
-        "type" : "2",
-        "street": "abc street",
-        "city" : "mumbai",
-        "country" : "india",
-        "landmark" : "near mall of asia",
-        "state" : "maharastra",
-        "pincode" : "400001",
-        "server IP": "122.234.456.789"
-    }
-    return jsonify(result)
 
 @app.route('/ARMSTRONG/<int:num>')
 def armstrong(num):
@@ -64,6 +36,14 @@ def armstrong(num):
             "server IP": "122.234.456.789"
         }
     return jsonify(result)
+
+@app.route('/employees')
+def get_employees():
+    url = 'http://localhost:3001/employees'
+    response = requests.get(url)
+    print(response.json())
+    return jsonify(response.json())
+
 
 if __name__ == "__main__":
     app.run(debug=True)
