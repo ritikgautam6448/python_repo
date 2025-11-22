@@ -1,0 +1,303 @@
+// File: server.js
+// Simple Hospital Management fullstack app using Node.js + Express and Tailwind (CDN).
+// Run: npm init -y && npm install express cors
+// Then: node server.js
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
+// In-memory sample data (replace with DB in real app)
+let patients = [
+    { id: 1, name: 'Alice Johnson', age: 29, phone: '555-0101' },
+    { id: 2, name: 'Bob Smith', age: 45, phone: '555-0202' }
+];
+let doctors = [
+    { id: 1, name: 'Dr. Emily Carter', specialty: 'Cardiology' },
+    { id: 2, name: 'Dr. Jason Lee', specialty: 'Pediatrics' }
+];
+let appointments = [
+    { id: 1, patientId: 1, doctorId: 1, date: '2025-01-15', notes: 'Follow-up' }
+];
+
+let nextId = { patients: 3, doctors: 3, appointments: 2 };
+
+// API routes: Patients
+app.get('/api/patients', (req, res) => res.json(patients));
+app.post('/api/patients', (req, res) => {
+    const p = { id: nextId.patients++, ...req.body };
+    patients.push(p);
+    res.status(201).json(p);
+});
+app.put('/api/patients/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const idx = patients.findIndex(x => x.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    patients[idx] = { ...patients[idx], ...req.body };
+    res.json(patients[idx]);
+});
+app.delete('/api/patients/:id', (req, res) => {
+    const id = Number(req.params.id);
+    patients = patients.filter(x => x.id !== id);
+    // also remove related appointments
+    appointments = appointments.filter(a => a.patientId !== id);
+    res.status(204).end();
+});
+
+// API routes: Doctors
+app.get('/api/doctors', (req, res) => res.json(doctors));
+app.post('/api/doctors', (req, res) => {
+    const d = { id: nextId.doctors++, ...req.body };
+    doctors.push(d);
+    res.status(201).json(d);
+});
+app.put('/api/doctors/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const idx = doctors.findIndex(x => x.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    doctors[idx] = { ...doctors[idx], ...req.body };
+    res.json(doctors[idx]);
+});
+app.delete('/api/doctors/:id', (req, res) => {
+    const id = Number(req.params.id);
+    doctors = doctors.filter(x => x.id !== id);
+    appointments = appointments.filter(a => a.doctorId !== id);
+    res.status(204).end();
+});
+
+// API routes: Appointments
+app.get('/api/appointments', (req, res) => {
+    // augment for easier frontend rendering
+    const result = appointments.map(a => ({
+        ...a,
+        patient: patients.find(p => p.id === a.patientId) || null,
+        doctor: doctors.find(d => d.id === a.doctorId) || null
+    }));
+    res.json(result);
+});
+app.post('/api/appointments', (req, res) => {
+    const { patientId, doctorId, date, notes } = req.body;
+    // basic validation
+    if (!patientId || !doctorId || !date) {
+        return res.status(400).json({ error: 'patientId, doctorId and date required' });
+    }
+    const a = { id: nextId.appointments++, patientId, doctorId, date, notes: notes || '' };
+    appointments.push(a);
+    res.status(201).json(a);
+});
+app.put('/api/appointments/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const idx = appointments.findIndex(x => x.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    appointments[idx] = { ...appointments[idx], ...req.body };
+    res.json(appointments[idx]);
+});
+app.delete('/api/appointments/:id', (req, res) => {
+    const id = Number(req.params.id);
+    appointments = appointments.filter(x => x.id !== id);
+    res.status(204).end();
+});
+
+// Simple single-file frontend served at /
+app.get('/', (req, res) => {
+    res.send(`<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hospital Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold">Hospital Management</h1>
+            <p class="text-gray-600">Minimal demo with Node.js + Express and Tailwind (in-memory)</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <section class="col-span-1 bg-white p-4 rounded shadow">
+                <h2 class="font-semibold mb-2">Patients</h2>
+                <div id="patients" class="space-y-2 text-sm"></div>
+                <form id="patientForm" class="mt-3 space-y-2">
+                    <input name="name" placeholder="Name" class="w-full border p-2 rounded" required />
+                    <input name="age" placeholder="Age" type="number" class="w-full border p-2 rounded" />
+                    <input name="phone" placeholder="Phone" class="w-full border p-2 rounded" />
+                    <div class="flex gap-2">
+                        <button class="bg-blue-600 text-white px-3 py-1 rounded">Add</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="col-span-1 bg-white p-4 rounded shadow">
+                <h2 class="font-semibold mb-2">Doctors</h2>
+                <div id="doctors" class="space-y-2 text-sm"></div>
+                <form id="doctorForm" class="mt-3 space-y-2">
+                    <input name="name" placeholder="Name" class="w-full border p-2 rounded" required />
+                    <input name="specialty" placeholder="Specialty" class="w-full border p-2 rounded" />
+                    <div class="flex gap-2">
+                        <button class="bg-green-600 text-white px-3 py-1 rounded">Add</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="col-span-1 md:col-span-3 bg-white p-4 rounded shadow">
+                <h2 class="font-semibold mb-2">Appointments</h2>
+                <div id="appointments" class="space-y-2 text-sm"></div>
+                <form id="apptForm" class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <select name="patientId" class="border p-2 rounded" required></select>
+                    <select name="doctorId" class="border p-2 rounded" required></select>
+                    <input name="date" type="date" class="border p-2 rounded" required />
+                    <input name="notes" placeholder="Notes" class="border p-2 rounded" />
+                    <div class="md:col-span-4">
+                        <button class="bg-indigo-600 text-white px-3 py-1 rounded">Schedule</button>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+
+<script>
+const api = (path, opts) => fetch('/api/' + path, opts).then(r => r.json ? r.json().catch(()=>{}) : {});
+
+// render helpers
+async function loadAll() {
+    const [patients, doctors, appointments] = await Promise.all([
+        fetch('/api/patients').then(r=>r.json()),
+        fetch('/api/doctors').then(r=>r.json()),
+        fetch('/api/appointments').then(r=>r.json())
+    ]);
+    renderPatients(patients);
+    renderDoctors(doctors);
+    renderAppointments(appointments);
+    populateSelects(patients, doctors);
+}
+
+function renderPatients(list) {
+    const el = document.getElementById('patients');
+    el.innerHTML = '';
+    list.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between border p-2 rounded';
+        div.innerHTML = \`
+            <div>
+                <div class="font-medium">\${p.name} <span class="text-xs text-gray-500">(#\${p.id})</span></div>
+                <div class="text-gray-600 text-xs">Age: \${p.age || '-'} • \${p.phone || '-'}</div>
+            </div>
+            <div class="flex gap-2">
+                <button data-id="\${p.id}" class="del-p text-red-600 text-sm">Delete</button>
+            </div>\`;
+        el.appendChild(div);
+    });
+    document.querySelectorAll('.del-p').forEach(btn => btn.onclick = async () => {
+        const id = btn.dataset.id;
+        await fetch('/api/patients/' + id, { method: 'DELETE' });
+        loadAll();
+    });
+}
+
+function renderDoctors(list) {
+    const el = document.getElementById('doctors');
+    el.innerHTML = '';
+    list.forEach(d => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between border p-2 rounded';
+        div.innerHTML = \`
+            <div>
+                <div class="font-medium">\${d.name} <span class="text-xs text-gray-500">(#\${d.id})</span></div>
+                <div class="text-gray-600 text-xs">\${d.specialty || '-'}</div>
+            </div>
+            <div class="flex gap-2">
+                <button data-id="\${d.id}" class="del-d text-red-600 text-sm">Delete</button>
+            </div>\`;
+        el.appendChild(div);
+    });
+    document.querySelectorAll('.del-d').forEach(btn => btn.onclick = async () => {
+        const id = btn.dataset.id;
+        await fetch('/api/doctors/' + id, { method: 'DELETE' });
+        loadAll();
+    });
+}
+
+function renderAppointments(list) {
+    const el = document.getElementById('appointments');
+    el.innerHTML = '';
+    if (list.length === 0) {
+        el.innerHTML = '<div class="text-gray-500">No appointments yet</div>';
+        return;
+    }
+    list.forEach(a => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between border p-2 rounded';
+        const patientName = a.patient ? a.patient.name : 'Unknown patient';
+        const doctorName = a.doctor ? a.doctor.name : 'Unknown doctor';
+        div.innerHTML = \`
+            <div>
+                <div class="font-medium">\${a.date} — \${patientName} with \${doctorName}</div>
+                <div class="text-gray-600 text-xs">\${a.notes || ''}</div>
+            </div>
+            <div class="flex gap-2">
+                <button data-id="\${a.id}" class="del-a text-red-600 text-sm">Cancel</button>
+            </div>\`;
+        el.appendChild(div);
+    });
+    document.querySelectorAll('.del-a').forEach(btn => btn.onclick = async () => {
+        const id = btn.dataset.id;
+        await fetch('/api/appointments/' + id, { method: 'DELETE' });
+        loadAll();
+    });
+}
+
+function populateSelects(patients, doctors) {
+    const psel = document.querySelector('select[name="patientId"]');
+    const dsel = document.querySelector('select[name="doctorId"]');
+    psel.innerHTML = '<option value="">Select patient</option>';
+    dsel.innerHTML = '<option value="">Select doctor</option>';
+    patients.forEach(p => psel.innerHTML += \`<option value="\${p.id}">\${p.name} (#\${p.id})</option>\`);
+    doctors.forEach(d => dsel.innerHTML += \`<option value="\${d.id}">\${d.name} - \${d.specialty || ''}</option>\`);
+}
+
+// Forms
+document.getElementById('patientForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = { name: fd.get('name'), age: fd.get('age'), phone: fd.get('phone') };
+    await fetch('/api/patients', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    e.target.reset();
+    loadAll();
+};
+
+document.getElementById('doctorForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = { name: fd.get('name'), specialty: fd.get('specialty') };
+    await fetch('/api/doctors', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    e.target.reset();
+    loadAll();
+};
+
+document.getElementById('apptForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = {
+        patientId: Number(fd.get('patientId')),
+        doctorId: Number(fd.get('doctorId')),
+        date: fd.get('date'),
+        notes: fd.get('notes')
+    };
+    await fetch('/api/appointments', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    e.target.reset();
+    loadAll();
+};
+
+loadAll();
+</script>
+</body>
+</html>`);
+});
+
+// start server
+app.listen(PORT, () => console.log('Server running on http://localhost:' + PORT));
